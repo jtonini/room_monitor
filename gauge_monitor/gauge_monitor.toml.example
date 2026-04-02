@@ -1,0 +1,62 @@
+# gauge_monitor.toml — configuration for Arachne room gauge monitor
+# Reads an analog UPPOD hygrometer/thermometer via webcam.
+
+[webcam]
+snapshot_url = "http://mingus.richmond.edu:8080/x.jpg"
+timeout_seconds = 10
+
+[thresholds]
+max_temperature_f = 80.0
+max_humidity_pct  = 65.0
+
+[alerts]
+smtp_server  = "localhost"
+smtp_port    = 25
+from_address = "jtonini@richmond.edu"
+to_addresses = ["jtonini@richmond.edu"]
+cooldown_minutes = 30
+
+[gauge]
+# --- Main dial: Humidity (%RH) ---
+# Calibrated for 1280x720 webcam image from mingus.richmond.edu:8080
+humidity_center_x = 808
+humidity_center_y = 413
+humidity_scan_radius = 230
+
+# Piecewise calibration table: [[value, angle_in_degrees], ...]
+# Angles in math convention (0=right/3-o'clock, 90=up, CCW positive).
+# Adjusted to align tick marks with printed numbers on the gauge face.
+humidity_calibration = [
+    [  0,  205.0],
+    [ 10,  195.0],
+    [ 20,  174.0],
+    [ 30,  148.0],
+    [ 40,  117.0],
+    [ 50,   87.0],
+    [ 60,   55.0],
+    [ 70,   11.0],
+    [ 80,   -6.0],
+    [ 90,  -27.0],
+    [100,  -45.0],
+]
+
+# Linear fallback (used only if humidity_calibration is removed).
+humidity_angle_min_deg = 205.0
+humidity_angle_max_deg = -45.0
+humidity_min_value = 0.0
+humidity_max_value = 100.0
+
+# --- Sub dial: Temperature ---
+temperature_center_x = 800
+temperature_center_y = 580
+temperature_scan_radius = 90
+
+temperature_angle_min_deg = 225.0
+temperature_angle_max_deg = -35.0
+temperature_min_c = -30.0
+temperature_max_c = 50.0
+
+[logging]
+log_file = "/var/log/gauge_monitor.log"
+db_file  = "/var/lib/gauge_monitor/gauge_monitor.db"
+snapshot_dir = "/var/lib/gauge_monitor/snapshots"
