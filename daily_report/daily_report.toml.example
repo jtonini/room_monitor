@@ -1,0 +1,20 @@
+# daily_report.toml — configuration for Arachne's room daily report
+
+[thresholds]
+max_humidity_pct   = 65.0
+max_temperature_f  = 80.0
+max_cpu_temp_c     = 85.0
+max_gpu_temp_c     = 80.0
+
+[email]
+smtp_server  = "localhost"
+smtp_port    = 25
+from_address = "jtonini@richmond.edu"
+# Always receives reports
+to_addresses = ["jtonini@richmond.edu"]
+# Only receives reports when something is abnormal
+to_addresses_abnormal = ["gflanagi@richmond.edu"]
+
+[logging]
+# Same database as gauge_monitor and node_temps
+db_file = "/var/lib/gauge_monitor/gauge_monitor.db"

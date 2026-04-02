@@ -313,7 +313,7 @@ def evaluate_alerts(results: list) -> None:
         logger.info("All node temps within thresholds.")
         return
 
-    subject = "Arachne's Room — High Node Temperature"
+    subject = "[ALERT] Arachne's Room — High Node Temperature"
     body_parts = [
         f"Node Temperature Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "",
