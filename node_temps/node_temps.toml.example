@@ -1,0 +1,29 @@
+# node_temps.toml — configuration for arachne node temperature monitoring
+
+[nodes]
+# SSH user for connecting to compute nodes
+ssh_user = "zeus"
+# Jump host to reach compute nodes (badenpowell can't resolve them directly)
+ssh_jump_host = "zeus@arachne"
+# CPU-only nodes
+cpu_nodes = ["node01", "node02", "node03"]
+# GPU nodes (also collects nvidia-smi temps)
+gpu_nodes = ["node51", "node52", "node53"]
+
+[thresholds]
+# CPU Tctl threshold (degrees C) — AMD EPYC typical throttle at 95C
+max_cpu_temp_c = 85.0
+# GPU threshold (degrees C) — RTX 6000 Ada throttles at 83-90C
+max_gpu_temp_c = 80.0
+
+[alerts]
+smtp_server  = "localhost"
+smtp_port    = 25
+from_address = "jtonini@richmond.edu"
+to_addresses = ["jtonini@richmond.edu"]
+cooldown_minutes = 30
+
+[logging]
+log_file = "/var/log/node_temps.log"
+# Same database as gauge_monitor for easy correlation
+db_file  = "/var/lib/gauge_monitor/gauge_monitor.db"
