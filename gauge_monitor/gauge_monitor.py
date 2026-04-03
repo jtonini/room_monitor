@@ -420,7 +420,7 @@ def evaluate_alerts(reading: dict, reading_id: int) -> None:
         return
 
     # Build combined alert message
-    subject = "Arachne's Room Environment Alert"
+    subject = "[ALERT] Arachne's Room Environment"
     body_parts = [
         f"Arachne's Room Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "",
