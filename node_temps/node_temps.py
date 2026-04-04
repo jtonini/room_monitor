@@ -258,7 +258,33 @@ def check_alert_cooldown(alert_type: str, node: str, cooldown_minutes: int) -> b
     return row["cnt"] > 0
 
 
+def _in_quiet_hours() -> bool:
+    """Check if we are in quiet hours (no alerts)."""
+    cfg_quiet = myconfig.get("quiet_hours", {})
+    if not cfg_quiet:
+        return False
+    now = datetime.datetime.now()
+    if cfg_quiet.get("suppress_weekends", False) and now.weekday() >= 5:
+        logger.debug("Quiet hours: weekend")
+        return True
+    start = cfg_quiet.get("start_hour", 0)
+    end = cfg_quiet.get("end_hour", 0)
+    hour = now.hour
+    if start > end:
+        if hour >= start or hour < end:
+            logger.debug(f"Quiet hours: {hour}:00 outside {end}:00-{start}:00")
+            return True
+    elif start < end:
+        if start <= hour < end:
+            return True
+    return False
+
+
 def send_alert_email(subject: str, body: str) -> bool:
+    if _in_quiet_hours():
+        logger.info(f"Alert suppressed (quiet hours): {subject}")
+        return False
+
     cfg = myconfig["alerts"]
 
     msg = MIMEMultipart()
@@ -313,7 +339,7 @@ def evaluate_alerts(results: list) -> None:
         logger.info("All node temps within thresholds.")
         return
 
-    subject = "[ALERT] Arachne's Room — High Node Temperature"
+    subject = "Arachne's Room — High Node Temperature"
     body_parts = [
         f"Node Temperature Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "",

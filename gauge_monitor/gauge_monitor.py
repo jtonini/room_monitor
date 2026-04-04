@@ -4,7 +4,7 @@
 """
 gauge_monitor.py — reads an analog UPPOD hygrometer/thermometer
 via a webcam snapshot (mjpg-streamer) and alerts on high temperature
-or high humidity in Arachne's room.
+or high humidity in the cluster room.
 
 Run modes:
   --check       Normal monitoring check (default, for cron)
@@ -365,8 +365,34 @@ def check_alert_cooldown(alert_type: str, cooldown_minutes: int) -> bool:
     return row["cnt"] > 0
 
 
+def _in_quiet_hours() -> bool:
+    """Check if we are in quiet hours (no alerts)."""
+    cfg_quiet = myconfig.get("quiet_hours", {})
+    if not cfg_quiet:
+        return False
+    now = datetime.datetime.now()
+    if cfg_quiet.get("suppress_weekends", False) and now.weekday() >= 5:
+        logger.debug("Quiet hours: weekend")
+        return True
+    start = cfg_quiet.get("start_hour", 0)
+    end = cfg_quiet.get("end_hour", 0)
+    hour = now.hour
+    if start > end:
+        if hour >= start or hour < end:
+            logger.debug(f"Quiet hours: {hour}:00 outside {end}:00-{start}:00")
+            return True
+    elif start < end:
+        if start <= hour < end:
+            return True
+    return False
+
+
 def send_alert_email(subject: str, body: str) -> bool:
     """Send an alert email. Returns True on success."""
+    if _in_quiet_hours():
+        logger.info(f"Alert suppressed (quiet hours): {subject}")
+        return False
+
     cfg = myconfig["alerts"]
 
     msg = MIMEMultipart()
@@ -420,9 +446,9 @@ def evaluate_alerts(reading: dict, reading_id: int) -> None:
         return
 
     # Build combined alert message
-    subject = "[ALERT] Arachne's Room Environment"
+    subject = "Arachne Room Environment Alert"
     body_parts = [
-        f"Arachne's Room Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Gauge Monitor Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "",
         f"Humidity:    {reading['humidity_pct']}% RH",
         f"Temperature: {reading['temperature_f']} F / {reading['temperature_c']} C",
@@ -698,7 +724,7 @@ def main() -> int:
     global myconfig, logger, db
 
     parser = argparse.ArgumentParser(
-        description="Arachne's room gauge monitor — reads analog hygrometer via webcam"
+        description="Cluster room gauge monitor — reads analog hygrometer via webcam"
     )
     parser.add_argument("--config", "-c", default=DEFAULT_CONFIG,
                         help=f"Path to TOML config (default: {DEFAULT_CONFIG})")
