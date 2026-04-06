@@ -19,12 +19,3 @@ to_addresses_abnormal = ["gflanagi@richmond.edu"]
 # Same database as gauge_monitor and node_temps
 db_file = "/var/lib/gauge_monitor/gauge_monitor.db"
 
-[quiet_hours]
-start_hour = 16
-end_hour = 7
-suppress_weekends = true
-
-[quiet_hours]
-start_hour = 16
-end_hour = 7
-suppress_weekends = true

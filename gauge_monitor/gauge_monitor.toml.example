@@ -61,16 +61,10 @@ log_file = "/var/log/gauge_monitor.log"
 db_file  = "/var/lib/gauge_monitor/gauge_monitor.db"
 snapshot_dir = "/var/lib/gauge_monitor/snapshots"
 
-[quiet_hours]
-# Suppress email alerts outside business hours
-# Alerts are suppressed but readings are still collected
-start_hour = 16
-end_hour = 7
-suppress_weekends = true
 
 [quiet_hours]
-# Suppress email alerts outside business hours
-# Data collection continues, only alerts are silenced
+# Suppress email alerts outside business hours (Mon-Fri 6AM-4PM active)
+# Data collection continues 24/7
 start_hour = 16
-end_hour = 7
+end_hour = 6
 suppress_weekends = true

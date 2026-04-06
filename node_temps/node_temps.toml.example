@@ -28,12 +28,8 @@ log_file = "/var/log/node_temps.log"
 # Same database as gauge_monitor for easy correlation
 db_file  = "/var/lib/gauge_monitor/gauge_monitor.db"
 
-[quiet_hours]
-start_hour = 16
-end_hour = 7
-suppress_weekends = true
 
 [quiet_hours]
 start_hour = 16
-end_hour = 7
+end_hour = 6
 suppress_weekends = true

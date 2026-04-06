@@ -140,19 +140,6 @@ def main():
 
     body = "\n".join(lines)
 
-    # --- Check quiet hours ---
-    cfg_quiet = cfg.get("quiet_hours", {})
-    if cfg_quiet:
-        if cfg_quiet.get("suppress_weekends", False) and now.weekday() >= 5:
-            print("Report suppressed: weekend")
-            return
-        start = cfg_quiet.get("start_hour", 0)
-        end = cfg_quiet.get("end_hour", 0)
-        hour = now.hour
-        if start > end:
-            if hour >= start or hour < end:
-                print(f"Report suppressed: quiet hours ({hour}:00)")
-                return
 
     # --- Send email ---
     tag = "[REPORT]"
