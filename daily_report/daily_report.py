@@ -3,7 +3,8 @@
 
 """
 daily_report.py — generates a daily status report for Arachne's room
-combining gauge_monitor (humidity/temp) and node_temps data.
+combining gauge_monitor (humidity/temp), node_temps, and George's
+collecttemps data.
 
 Sends to João always, and to George only if any reading is above threshold.
 
@@ -14,6 +15,7 @@ import os
 import sys
 import sqlite3
 import smtplib
+import subprocess
 import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -25,6 +27,39 @@ except ModuleNotFoundError:
 
 
 DEFAULT_CONFIG = "/usr/local/etc/daily_report.toml"
+
+
+def get_george_temps(ssh_target: str, db_path: str) -> list:
+    """Query George's collecttemps database on arachne."""
+    query = (
+        f"SELECT node, ROUND(mean,1), ROUND(sigma,1), "
+        f"ROUND(maxtemp,1), ROUND(load,1), t "
+        f"FROM facts WHERE t > datetime('now', '-2 minutes') GROUP BY node "
+        f"ORDER BY node"
+    )
+    try:
+        proc = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=no",
+             ssh_target, f"sqlite3 {db_path} \"{query}\""],
+            capture_output=True, text=True, timeout=15
+        )
+        if proc.returncode != 0:
+            return []
+
+        results = []
+        for line in proc.stdout.strip().splitlines():
+            parts = line.split("|")
+            if len(parts) >= 5:
+                results.append({
+                    "node": parts[0],
+                    "mean": parts[1],
+                    "sigma": parts[2],
+                    "max": parts[3],
+                    "load": parts[4],
+                })
+        return results
+    except Exception:
+        return []
 
 
 def main():
@@ -57,16 +92,12 @@ def main():
         "GROUP BY strftime('%H', timestamp) ORDER BY timestamp"
     ).fetchall()
 
-    # --- Gather node data ---
-    # Get latest reading per node
-    nodes = db.execute(
-        "SELECT node, cpu0_tctl, cpu1_tctl, gpu_max, gpu_count, timestamp "
-        "FROM node_temps "
-        "WHERE timestamp > datetime('now', '-10 minutes', 'localtime') "
-        "GROUP BY node "
-        "HAVING MAX(timestamp) "
-        "ORDER BY node"
-    ).fetchall()
+    # --- Gather George's collecttemps data ---
+    george_cfg = cfg.get("george_temps", {})
+    george_data = get_george_temps(
+        george_cfg.get("ssh_target", "zeus@arachne"),
+        george_cfg.get("db_path", "/home/zeus/temps/temperatures.db")
+    )
 
     # --- Check if anything is abnormal ---
     abnormal = False
@@ -80,16 +111,14 @@ def main():
             abnormal = True
             warnings.append(f"Temperature {current['temperature_f']}°F > {thresh['max_temperature_f']}°F threshold")
 
-    for n in nodes:
-        if n["cpu0_tctl"] and n["cpu0_tctl"] > thresh["max_cpu_temp_c"]:
-            abnormal = True
-            warnings.append(f"{n['node']} CPU0 {n['cpu0_tctl']}°C > {thresh['max_cpu_temp_c']}°C threshold")
-        if n["cpu1_tctl"] and n["cpu1_tctl"] > thresh["max_cpu_temp_c"]:
-            abnormal = True
-            warnings.append(f"{n['node']} CPU1 {n['cpu1_tctl']}°C > {thresh['max_cpu_temp_c']}°C threshold")
-        if n["gpu_max"] and n["gpu_max"] > thresh["max_gpu_temp_c"]:
-            abnormal = True
-            warnings.append(f"{n['node']} GPU max {n['gpu_max']}°C > {thresh['max_gpu_temp_c']}°C threshold")
+    for n in george_data:
+        try:
+            max_temp = float(n["max"])
+            if max_temp > thresh["max_cpu_temp_c"]:
+                abnormal = True
+                warnings.append(f"{n['node']} max temp {n['max']}°C > {thresh['max_cpu_temp_c']}°C threshold")
+        except (ValueError, KeyError):
+            pass
 
     # --- Build report ---
     lines = [
@@ -120,18 +149,14 @@ def main():
         lines.append("  No data available.")
 
     lines.append("")
-    lines.append("Node temperatures:")
-    if nodes:
-        lines.append(f"  {'Node':<10s} {'CPU0':>7s} {'CPU1':>7s} {'GPU max':>8s} {'GPUs':>5s}")
-        lines.append(f"  {'-'*42}")
-        for n in nodes:
-            cpu0 = f"{n['cpu0_tctl']:.1f}" if n['cpu0_tctl'] else "  -  "
-            cpu1 = f"{n['cpu1_tctl']:.1f}" if n['cpu1_tctl'] else "  -  "
-            gpu = f"{n['gpu_max']:.1f}" if n['gpu_max'] else "  -  "
-            gpus = str(n['gpu_count']) if n['gpu_count'] and n['gpu_count'] > 0 else "  -"
-            lines.append(f"  {n['node']:<10s} {cpu0:>7s} {cpu1:>7s} {gpu:>8s} {gpus:>5s}")
+    lines.append("Node temperatures (collecttemps):")
+    if george_data:
+        lines.append(f"  {'Node':<10s} {'Mean':>6s} {'Sigma':>6s} {'Max':>6s} {'Load':>6s}")
+        lines.append(f"  {'-'*38}")
+        for n in george_data:
+            lines.append(f"  {n['node']:<10s} {n['mean']:>6s} {n['sigma']:>6s} {n['max']:>6s} {n['load']:>6s}")
     else:
-        lines.append("  No recent node data available.")
+        lines.append("  No recent node data available (collecttemps may not be running).")
 
     lines.extend([
         "",
@@ -140,15 +165,12 @@ def main():
 
     body = "\n".join(lines)
 
-
     # --- Send email ---
     tag = "[REPORT]"
     subject = f"{tag} Arachne's Room Status — {now.strftime('%H:%M')}"
 
-    # Always send to primary recipients
     recipients = list(cfg["email"]["to_addresses"])
 
-    # Add conditional recipients (George) only if abnormal
     if abnormal and cfg["email"].get("to_addresses_abnormal"):
         recipients.extend(cfg["email"]["to_addresses_abnormal"])
 
