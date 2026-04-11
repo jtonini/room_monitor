@@ -182,6 +182,8 @@ def detect_needle_angle(gray: np.ndarray,
     best_darkness = 999
 
     for deg in range(360):
+        if deg > 300 or deg < 5:
+            continue
         rad = math.radians(deg)
         values = []
         for r in range(scan_radius_min, scan_radius_max, 3):

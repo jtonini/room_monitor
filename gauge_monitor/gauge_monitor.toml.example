@@ -17,40 +17,33 @@ to_addresses = ["jtonini@richmond.edu"]
 cooldown_minutes = 30
 
 [gauge]
-# --- Main dial: Humidity (%RH) ---
-# Calibrated for 1280x720 webcam image from mingus.richmond.edu:8080
-humidity_center_x = 808
-humidity_center_y = 413
-humidity_scan_radius = 230
+# Recalibrated for new camera position (2026-04-10)
+humidity_center_x = 800
+humidity_center_y = 405
+humidity_scan_radius = 240
 
-# Piecewise calibration table: [[value, angle_in_degrees], ...]
-# Angles in math convention (0=right/3-o'clock, 90=up, CCW positive).
-# Adjusted to align tick marks with printed numbers on the gauge face.
 humidity_calibration = [
-    [  0,  205.0],
-    [ 10,  195.0],
-    [ 20,  174.0],
-    [ 30,  148.0],
-    [ 40,  117.0],
-    [ 50,   87.0],
+    [  0,  206.6],
+    [ 10,  188.9],
+    [ 20,  171.6],
+    [ 30,  148.9],
+    [ 40,  122.1],
+    [ 50,   63.0],
     [ 60,   38.0],
-    [ 70,   11.0],
-    [ 80,   -6.0],
-    [ 90,  -27.0],
-    [100,  -45.0],
+    [ 70,   22.0],
+    [ 80,   -7.1],
+    [ 90,  -32.4],
+    [100,  -54.6],
 ]
 
-# Linear fallback (used only if humidity_calibration is removed).
-humidity_angle_min_deg = 205.0
-humidity_angle_max_deg = -45.0
+humidity_angle_min_deg = 206.6
+humidity_angle_max_deg = -54.6
 humidity_min_value = 0.0
 humidity_max_value = 100.0
 
-# --- Sub dial: Temperature ---
-temperature_center_x = 800
-temperature_center_y = 580
-temperature_scan_radius = 90
-
+temperature_center_x = 790
+temperature_center_y = 585
+temperature_scan_radius = 85
 temperature_angle_min_deg = 225.0
 temperature_angle_max_deg = -35.0
 temperature_min_c = -30.0
@@ -61,10 +54,7 @@ log_file = "/var/log/gauge_monitor.log"
 db_file  = "/var/lib/gauge_monitor/gauge_monitor.db"
 snapshot_dir = "/var/lib/gauge_monitor/snapshots"
 
-
 [quiet_hours]
-# Suppress email alerts outside business hours (Mon-Fri 6AM-4PM active)
-# Data collection continues 24/7
 start_hour = 16
 end_hour = 6
 suppress_weekends = true
