@@ -448,9 +448,9 @@ def evaluate_alerts(reading: dict, reading_id: int) -> None:
         return
 
     # Build combined alert message
-    subject = "Arachne Room Environment Alert"
+    subject = "[ALERT] Arachne's Room Environment"
     body_parts = [
-        f"Gauge Monitor Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Arachne's Room Alert — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "",
         f"Humidity:    {reading['humidity_pct']}% RH",
         f"Temperature: {reading['temperature_f']} F / {reading['temperature_c']} C",
